@@ -37,7 +37,7 @@ namespace JINRO_WebApp.Controllers
                     //処理
                     Suspect(gameInfo);
                     return null;
-                case "占い師":
+                case "預言者":
                     //処理
                     var role= Divine(gameInfo);
                     return role;
@@ -54,6 +54,9 @@ namespace JINRO_WebApp.Controllers
         //夜のアクション集計
         public void AggregateNightAction()
         {
+            //疑いを集計
+            var res = GetSusupectedMost();   
+            //死者判定
 
         }
         /// <summary>
@@ -79,8 +82,8 @@ namespace JINRO_WebApp.Controllers
         private String Divine(GameInfo gameInfo)
         {
             DBService dBService = new DBService();
-            string role = dBService.GetRole(gameInfo.actionTarget);
-            return role;
+            string result = dBService.GetRole(gameInfo.actionTarget);
+            return result;
         }
 
         /// <summary>
@@ -135,6 +138,38 @@ namespace JINRO_WebApp.Controllers
             DBService dBService = new DBService();
             dBService.NightAction(gameInfo.actionTarget, 3);
         }
-
+        /// <summary>
+        /// 最初の夜
+        /// </summary>
+        public String FirstNight(GameInfo gameInfo)
+        {
+            switch (GetRole(gameInfo))
+            {
+                case "占い師":
+                    //処理
+                    var result = Divine(gameInfo);
+                    return result;
+                default:
+                    //処理
+                    Suspect(gameInfo);
+                    return null;
+            }
+        }
+        /// <summary>
+        /// 一番疑われている人を返す
+        /// </summary>
+        /// <returns></returns>
+        private string GetSusupectedMost()
+        {
+            DBService dBService = new DBService();
+            var result = dBService.SuspectedMost();
+            return result;
+        }
+        private string DeathJudge()
+        {
+            DBService dBService = new DBService();
+            var result = dBService.DeathJudge();
+            return result;
+        }
     }
 }

@@ -66,5 +66,77 @@ namespace JINRO_WebApp.Models.Service
 
             //return role;
         }
+        public string Divine(String target)
+        {
+            var con = new MySqlConnection(getConnStr());
+            con.Open();
+            var command = new MySqlCommand("select divination from jinro.user_info inner join jinro.role  on user_info.role_id = jinro.role.role_id where user_info.user_name = @name;", con);
+            command.Parameters.Add(new MySqlParameter("name", target));
+            var reader = command.ExecuteReader();
+            reader.Read();
+            var result = reader["divination"].ToString();
+            con.Close();
+            return result;
+        }
+        public string[] SuspectedMost()
+        {
+            string[] result={ };
+            var con = new MySqlConnection(getConnStr());
+            con.Open();
+            var command = new MySqlCommand("select user_name from jinro.night_status where vote_count= (select max(vote_count) from jinro.night_status)", con);
+            var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                Array.Resize(ref result, result.Length + 1);
+                result[result.Length - 1] = reader["user_name"].ToString();
+            }
+            con.Close();
+            return result;
+        }
+        public string DeathJudge()
+        {
+            var con = new MySqlConnection(getConnStr());
+            con.Open();
+            var command = new MySqlCommand(@"SELECT 
+                                                *,
+                                                CASE
+                                                    WHEN forced_attack > 0 and(select sum(role.divination) from jinro.user_info info inner join jinro.role role on info.role_id = role.role_id where role.divination = '1' group by role.divination) > 1 THEN '強制襲撃により死亡'
+                                                    WHEN trapped > 0 THEN 'トラップ死'
+                                                    WHEN
+                                                        protected > 0
+                                                            OR protected_knights > (SELECT
+                                                                COUNT(1)
+                                                            FROM
+                                                                jinro.user_info
+                                                            WHERE
+                                                                role_id = '7' AND dead_or_alive = '0')
+                                                    THEN
+                                                        '襲撃失敗'
+                                                    ELSE '襲撃成功'
+                                                END result
+                                            FROM
+                                                (SELECT
+                                                    a.user_name,
+                                                        a.protected,
+                                                        a.trapped,
+                                                        a.protected_knights,
+                                                        a.forced_attack
+                                                FROM
+                                                    jinro.night_status a
+                                                WHERE
+                                                    forced_attack > 0
+                                                        OR(attacked = (SELECT
+                                                            MAX(b.attacked)
+                                                        FROM
+                                                            jinro.night_status b)
+                                                        AND forced_attack< 1) 
+                                                ORDER BY RAND()
+                                                LIMIT 1) c;", con);
+            var reader = command.ExecuteReader();
+            reader.Read();
+            var result = reader["result"].ToString();
+            con.Close();
+            return result;
+        }
     }
 }
